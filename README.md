@@ -1,25 +1,20 @@
 # AI Medical Diagnosis Assistant
 
-An interactive machine learning application that predicts possible diseases from user-provided symptoms. The application combines a trained **Bernoulli Naive Bayes** model with natural-language symptom extraction and a multi-stage diagnostic workflow to progressively refine predictions.
-
-The application supports **754 disease classes, 377 symptoms, and approximately 246K medical records**.
+An interactive machine learning application that predicts possible diseases from user-provided symptoms. The application uses a trained **Bernoulli Naive Bayes** model and provides disease predictions, probability scores, symptom severity analysis, and specialist recommendations through a Streamlit interface.
 
 ## Features
 
-* Symptom selection from the trained model's symptom list
-* Free-text symptom description
-* Natural-language symptom extraction
-* Synonym mapping for common medical and everyday expressions
-* Three-stage diagnostic workflow
-* Preliminary disease predictions
-* Intelligent follow-up symptom questions
+* Select symptoms from the trained model's symptom list
+* Enter symptoms using comma-separated text
+* Binary symptom representation for machine learning prediction
 * Top 5 possible disease predictions
-* Prediction confidence scores
-* Uncertainty detection for closely matched predictions
-* Optional disease descriptions
-* Interactive Streamlit interface
+* Probability scores for each prediction
+* Symptom severity scoring
+* Suggested medical specialist based on the predicted disease
 * Patient information display
-* Restart and new-diagnosis functionality
+* Interactive Streamlit interface
+* New diagnosis functionality
+* Educational medical disclaimer
 
 ## Technology Stack
 
@@ -28,180 +23,171 @@ The application supports **754 disease classes, 377 symptoms, and approximately 
 * Pandas
 * Scikit-learn
 * Joblib
-* Regular Expressions
 * Bernoulli Naive Bayes
-* HTML/CSS
 
 ## How It Works
 
-The application follows a three-stage diagnostic workflow:
+The application follows a simple machine learning prediction workflow:
 
 ```text
-User Symptoms
-      |
-      v
-Stage 1: Symptom Entry
-      |
-      +---- Select symptoms
-      |
-      +---- Describe symptoms in natural language
-      |
-      v
-NLP Symptom Extraction
-      |
-      +---- Direct symptom matching
-      |
-      +---- Synonym mapping
-      |
-      v
-Initial Disease Prediction
-      |
-      v
-Stage 2: Follow-Up Questions
-      |
-      +---- Identify discriminative symptoms
-      |
-      +---- Ask targeted Yes / No / Not Sure questions
-      |
-      v
-Stage 3: Final Diagnosis
-      |
-      +---- Top 5 predictions
-      |
-      +---- Confidence scores
-      |
-      +---- Uncertainty analysis
-      |
-      v
-Final Prediction
+User
+ |
+ v
+Enter Patient Information
+ |
+ v
+Select or Enter Symptoms
+ |
+ v
+Convert Symptoms to Binary Features
+ |
+ v
+Trained Bernoulli Naive Bayes Model
+ |
+ v
+Generate Disease Probabilities
+ |
+ v
+Sort Predictions
+ |
+ +---- Top 5 Possible Diseases
+ |
+ +---- Probability Scores
+ |
+ +---- Severity Score
+ |
+ +---- Suggested Specialist
+ |
+ v
+Display Results
 ```
 
-## Stage 1: Symptom Entry
+## 1. Patient Information
 
-Users can provide symptoms in two ways:
+The application allows the user to optionally enter basic patient information:
 
-1. Select symptoms from the available symptom list.
-2. Describe their symptoms using free-form text.
+* Name
+* Age
+* Gender
 
-The application contains 377 symptoms from the trained model.
+This information is displayed in the diagnosis report and does not affect the machine learning prediction.
 
-For example:
+## 2. Symptom Selection
+
+Users can select symptoms directly from the symptom list used by the trained model.
+
+The application also provides a text field where symptoms can be entered in comma-separated format.
+
+Example:
 
 ```text
-I have fever, headache and a runny nose for 3 days
+fever, headache, cough
 ```
 
-The application extracts recognized symptoms from the text and converts them into the canonical symptom names used by the trained model.
+The application checks the entered symptoms against the model's known symptom list before using them for prediction.
 
-## Natural Language Symptom Extraction
+## 3. Feature Preparation
 
-The application uses regular-expression-based matching to identify symptoms from user text.
-
-It performs:
-
-* Direct phrase matching
-* Longest-first matching to reduce partial matches
-* Case-insensitive matching
-* Synonym mapping
-* Canonical symptom conversion
-
-For example:
-
-```text
-"runny nose"       -> nasal congestion
-"body ache"        -> muscle pain
-"breathlessness"   -> shortness of breath
-"stomach ache"     -> abdominal pain
-"throwing up"      -> vomiting
-"head pain"        -> headache
-```
-
-The synonym system only maps terms when the corresponding canonical symptom exists in the model's actual symptom list.
-
-## Stage 2: Intelligent Follow-Up Questions
-
-After the initial symptoms are entered, the application generates an initial prediction and identifies the top five disease candidates.
-
-It then selects additional symptoms that can help differentiate between those possible diseases.
-
-The follow-up selection uses the model's feature log-probabilities to rank symptoms according to how discriminative they are among the leading disease predictions.
-
-Users answer each follow-up question with:
-
-* Yes
-* No
-* Not sure
-
-Symptoms confirmed with "Yes" are added to the final symptom set.
-
-## Stage 3: Final Diagnosis
-
-The final stage runs the trained model using the complete symptom set.
-
-The application provides:
-
-* Most likely diagnosis
-* Top 5 possible diagnoses
-* Probability for each prediction
-* Confidence level
-* Patient summary
-* Symptoms used for prediction
-* Optional condition description
-
-The prediction probabilities are obtained using the model's `predict_proba()` method and sorted from highest to lowest probability.
-
-## Confidence and Uncertainty
-
-The application provides three confidence levels:
-
-| Confidence    | Interpretation      |
-| ------------- | ------------------- |
-| 60% or higher | High confidence     |
-| 35%–59.99%    | Moderate confidence |
-| Below 35%     | Low confidence      |
-
-It also checks whether the top two predictions have probabilities within 10 percentage points of each other. If they are close, the application displays an uncertainty warning and recommends providing additional symptoms or consulting a healthcare professional.
-
-## Model
-
-The application uses a trained **Bernoulli Naive Bayes** model for disease prediction.
-
-The model expects a binary symptom representation where:
+The machine learning model expects symptoms in binary form.
 
 ```text
 1 = Symptom present
 0 = Symptom absent
 ```
 
-The application builds the input vector using the exact symptom ordering expected by the trained model before generating predictions.
+For example:
+
+```text
+fever       = 1
+headache    = 1
+cough       = 1
+fatigue     = 0
+vomiting    = 0
+```
+
+The application creates a Pandas DataFrame containing the complete symptom feature set and maintains the same symptom ordering expected by the trained model.
+
+## 4. Disease Prediction
+
+The trained Bernoulli Naive Bayes model generates probabilities for the possible disease classes using:
+
+```python
+model.predict_proba(input_data)
+```
+
+The predictions are then sorted from highest to lowest probability.
+
+The application displays the five highest-probability predictions.
+
+Example:
+
+```text
+1. Disease A — 72.50%
+2. Disease B — 14.20%
+3. Disease C — 7.80%
+4. Disease D — 3.40%
+5. Disease E — 2.10%
+```
+
+## 5. Symptom Severity Scoring
+
+The application can use `Symptom-severity.csv` to calculate an overall symptom severity score.
+
+Each selected symptom can have an associated severity weight.
+
+The application adds the weights of the selected symptoms to produce a severity score.
+
+The result is classified as:
+
+| Severity Score | Level            |
+| -------------- | ---------------- |
+| 0              | Data unavailable |
+| 1–5            | Low              |
+| 6–10           | Moderate         |
+| Above 10       | High             |
+
+## 6. Specialist Recommendation
+
+The application provides a suggested medical specialist based on keywords found in the predicted disease name.
+
+Examples include:
+
+```text
+Heart-related disease      → Cardiologist
+Skin-related disease       → Dermatologist
+Respiratory disease        → Pulmonologist
+Stomach-related disease    → Gastroenterologist
+Kidney-related disease     → Nephrologist
+Brain-related disease      → Neurologist
+Eye-related disease        → Ophthalmologist
+```
+
+If no matching specialist is found, the application recommends:
+
+```text
+General Physician
+```
+
+## Model
+
+The application uses a trained **Bernoulli Naive Bayes** classifier.
+
+Bernoulli Naive Bayes is suitable for binary feature representations, making it appropriate for this symptom-based prediction system where each symptom is represented as either present or absent.
+
+The model receives a binary symptom vector and produces probability estimates for the available disease classes.
 
 ## Model Files
 
-The application loads two trained artifacts:
+The application loads the trained model and symptom list using Joblib:
 
 ```text
 disease_model_v2.pkl
 symptoms_v2.pkl
 ```
 
-The model and symptom list are loaded using Joblib when the application starts.
+The model file contains the trained machine learning classifier.
 
-## Optional Disease Information
-
-The application can also load additional disease information from:
-
-```text
-disease_info.csv
-```
-
-The file is expected to contain at least:
-
-```text
-disease
-description
-```
-
-If available, the description of the predicted condition can be displayed within the application.
+The symptom file contains the feature names and their expected ordering.
 
 ## Project Structure
 
@@ -209,10 +195,9 @@ If available, the description of the predicted condition can be displayed within
 AI-Medical-Diagnosis-Assistant/
 │
 ├── app.py
-├── train.py
 ├── disease_model_v2.pkl
 ├── symptoms_v2.pkl
-├── disease_info.csv
+├── Symptom-severity.csv
 ├── requirements.txt
 └── README.md
 ```
@@ -246,25 +231,25 @@ The application will open in your browser.
 
 ```text
 1. Enter optional patient information
-2. Select or describe symptoms
-3. Review automatically detected symptoms
-4. Continue to follow-up questions
-5. Answer targeted symptom questions
-6. Generate the final diagnosis
-7. Review the top 5 predictions
-8. Examine confidence and uncertainty information
-9. Start a new diagnosis when required
+2. Select symptoms or enter them as comma-separated values
+3. Click Predict Disease
+4. Convert symptoms into binary features
+5. Generate disease probabilities
+6. Display the top 5 predictions
+7. Calculate symptom severity
+8. Display a suggested specialist
 ```
 
 ## Project Highlights
 
-* Implemented an end-to-end symptom-based machine learning application.
-* Integrated natural-language symptom extraction with a trained ML model.
-* Built synonym mapping to handle common variations in symptom descriptions.
-* Designed a multi-stage prediction workflow instead of relying on a single prediction step.
-* Implemented discriminative follow-up symptom selection.
-* Added probability-based confidence and uncertainty analysis.
-* Built an interactive Streamlit user interface.
+* Developed an end-to-end machine learning application for symptom-based disease prediction.
+* Implemented a Bernoulli Naive Bayes classification model.
+* Converted user symptoms into binary machine learning features.
+* Implemented probability-based Top-5 disease prediction.
+* Added symptom severity scoring using symptom weights.
+* Implemented specialist recommendation mapping.
+* Built an interactive Streamlit interface for model inference.
+* Integrated trained machine learning artifacts using Joblib.
 
 ## Disclaimer
 
